@@ -176,13 +176,13 @@ It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacO
 
 9. Check ArgoCD.
 
-  Take note of your ArgoCD ***admin password*** and ***service URL***. There will be only one instance of ArgoCD.
-  Get the ArgoCD credentials and hostname:
+    Take note of your ArgoCD ***admin password*** and ***service URL***. There will be only one instance of ArgoCD.
+    Get the ArgoCD credentials and hostname:
 
-  ```bash
-  kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
-  echo https://`kubectl get svc -n argocd argocd-server -o jsonpath="{.status.loadBalancer.ingress[0].ip}"`.nip.io
-  ```
+    ```bash
+    kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
+    echo https://`kubectl get svc -n argocd argocd-server -o jsonpath="{.status.loadBalancer.ingress[0].ip}"`.nip.io
+    ```
 
 ## Demo
 
@@ -221,7 +221,7 @@ Deploy Application config to ArgoCD:
  kubectl apply -n argocd -f https://raw.githubusercontent.com/$GITHUB_ACCOUNT/cicd-demo/main/argo/application.yaml
  ```
 
-Wait a few minutes for the first deployment, then check your Application in Argo. Get your Kibana URL to deploy the dashboards:
+Wait a few minutes for the first deployment, then check your Application in Argo. Deploy the dashboards to Kibana and take note of your instance URL at the end.
 
 ```bash
 KIBANA_HOST=`kubectl get svc -n $PREFIX elk-kibana-svc -o jsonpath="{.status.loadBalancer.ingress[0].ip}"`
@@ -243,7 +243,7 @@ echo $KIBANA_URL
 ```
 
 Navigate to your Kibana, Dashboard -> Overview to view the events from NGINX App Protect.
-Right now, you should have the IP address for:
+Right now, you should have the IP addresses for:
 
 - Shared ArgoCD instance
 - Your Kibana instance
@@ -262,12 +262,14 @@ git commit -m "second commit - 1st scan"
 git push -u demo main
 ```
 
-Do a simple change, like add a file, add a dummy content in this file, whatever, then commit and push to the repo. That will trigger a app scan and generate a issue with the report.
+With any simple change, like add or modify a file, will trigger a app scan and generate or update an GitHub issue with a report.
 
 ### Part 3 - After the 1st scan
 
 After the first scan, we notice a lots of vulnerabilities that could be easy fixed with **NGINX App Protect**.
-In [nap-vs.yaml](app/nap-vs.yaml), after `tls` settings block, to enable a policy in the NGINX VirtualServer, add the following:
+Check the file [app/nap-policy.yaml](app/nap-policy.yaml) to understand how to attach a WAF policy with ```apPolicy```. Also, we configure a logging policy using the ```securityLog``` that point to our ELK stack.
+Check the file [app/nap-waf-policy.yaml](app/nap-waf-policy.yaml) to understand how to build a WAF policy with App Protect for NGINX+ Ingress Controller. Check out the complete documentatio in [Using with NGINX App Protect](https://docs.nginx.com/nginx-ingress-controller/app-protect/configuration/) and [NGINX App Protect WAF Configuration Guide](https://docs.nginx.com/nginx-app-protect/configuration-guide/configuration/)
+In [app/nap-vs.yaml](app/nap-vs.yaml), after `tls` settings block, to enable a policy in the VirtualServer, add the following:
 
 ```yaml
   policies:
@@ -284,9 +286,8 @@ git push -u demo main
 
 ### Part 4 - After the 2nd scan
 
-To access the Kibana dashboard, point to your NGINX service URL using port 5601.
-When we check a reduced number of vulnerabilities, some of them related to content and settings in application and server, and the dashboard show some alerts.
-We can fix some server/application issues in NGINX, by adding the following to [app/nap-vs.yaml](app/nap-vs.yaml), after the `requestHeaders` settings. Please, update the hostname value.
+Access the Kibana dashboard. When we check a reduced number of vulnerabilities, some of them related to content and settings in application and server, and the dashboard show some alerts.
+We can fix some server/application issues in NGINX, by adding the following to [app/nap-vs.yaml](app/nap-vs.yaml), after the `requestHeaders` settings. Please, update the host ```value``` in the config below.
 
 ```yaml
         responseHeaders:
@@ -353,7 +354,7 @@ So, we close the issue and forwarding the issue to be fixed by the dev team.
 
 #### Optional step
 
-Add to ignore settings to the [.zap/rules.tsv](.zap/rules.tsv), separated by **tab**:
+Add the following lines to [.zap/rules.tsv](.zap/rules.tsv) to ignore some rules, separated by **tab**:
 
 ```text
 10096 IGNORE (Timestamp Disclosure - Unix)
