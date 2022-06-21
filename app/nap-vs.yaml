@@ -1,0 +1,22 @@
+apiVersion: k8s.nginx.org/v1
+kind: VirtualServer
+metadata:
+  name: juice-shop
+spec:
+  host: CHANGE_THIS_TO_YOUR_NGINX_SERVICE_URL
+  tls:
+    secret: juice-shop-secret
+  ingressClassName: CHANGE_THIS_TO_YOUR_PREFIX-nginx-ingress  
+  upstreams:
+  - name: juice-shop
+    service: juice-shop-svc
+    port: 80
+  routes:
+  - path: /
+    action:
+      proxy: 
+        upstream: juice-shop
+        requestHeaders:
+          pass: true
+
+

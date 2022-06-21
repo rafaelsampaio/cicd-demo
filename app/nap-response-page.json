@@ -1,0 +1,13 @@
+[
+    {
+        "responseContent": "<html><head><title>Request Rejected</title></head><body><h1>Not today, <b>Hacker!!!</b> &#9760;&#65039;<br><br>Your support ID is: <%TS.request.ID()%><br><br></h1><a href='javascript:history.back();'>[Go Back]</a><br><br>*Page referenced from GitHub repo</body></html>",
+        "responseHeader": "HTTP/1.1 200 OK\r\nCache-Control: no-cache\r\nPragma: no-cache\r\nConnection: close",
+        "responseActionType": "custom",
+        "responsePageType": "default"
+    },
+    {
+        "responsePageType": "ajax",
+        "ajaxEnabled": true,
+        "ajaxPopupMessage": "Not today, Hacker!!! Your support ID is: <%TS.request.ID()%>"
+    }
+]

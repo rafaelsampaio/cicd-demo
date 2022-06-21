@@ -1,0 +1,13 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+resources:
+- secrets.yaml
+- app-namespace.yaml
+- juice-shop-deployment.yaml
+- juice-shop-svc.yaml
+- nap-logging.yaml
+- nap-waf-policy.yaml
+- nap-policy.yaml
+- nap-vs.yaml
+- elk-stack.yaml
+namespace: CHANGE_THIS_TO_YOUR_PREFIX

@@ -1,0 +1,133 @@
+apiVersion: appprotect.f5.com/v1beta1
+kind: APPolicy
+metadata:
+  name: nap-waf-policy
+spec:
+  policy:
+    template:
+      name: POLICY_TEMPLATE_NGINX_BASE  
+    applicationLanguage: utf-8
+    signature-sets:
+    - name: All Signatures
+      alarm: true
+      block: true
+    - name: All Response Signatures
+      block: true
+      alarm: true
+    signatures:
+    - enabled: false
+      signatureId: 200020010
+    blocking-settings:
+      violations:
+      - description: Illegal file type
+        name: VIOL_FILETYPE
+      - description: Illegal method
+        name: VIOL_METHOD
+      - description: Illegal meta character in URL
+        name: VIOL_URL_METACHAR
+      - description: HTTP protocol compliance failed
+        name: VIOL_HTTP_PROTOCOL
+      - description: Threat Campaigns
+        name: VIOL_THREAT_CAMPAIGN
+      - description: Illegal meta character in value
+        name: VIOL_PARAMETER_VALUE_METACHAR
+      - description: Illegal Base64 value
+        name: VIOL_PARAMETER_VALUE_BASE64
+      - description: Illegal request content type
+        name: VIOL_URL_CONTENT_TYPE
+      - description: Illegal cookie length
+        name: VIOL_COOKIE_LENGTH
+      - description: Illegal parameter data type
+        name: VIOL_PARAMETER_DATA_TYPE
+      - description: Illegal POST data length
+        name: VIOL_POST_DATA_LENGTH
+      - description: Null in multi-part parameter value
+        name: VIOL_PARAMETER_MULTIPART_NULL_VALUE
+      - description: Illegal parameter
+        name: VIOL_PARAMETER
+      - description: Illegal HTTP status in response
+        name: VIOL_HTTP_RESPONSE_STATUS
+      - description: CSRF attack detected
+        name: VIOL_CSRF
+      - description: Modified ASM cookie
+        name: VIOL_ASM_COOKIE_MODIFIED
+      - description: Failed to convert character
+        name: VIOL_ENCODING
+      - description: Illegal request length
+        name: VIOL_REQUEST_LENGTH
+      - description: Illegal URL
+        name: VIOL_URL
+      - description: Illegal repeated parameter name
+        name: VIOL_PARAMETER_REPEATED
+      - description: Illegal meta character in parameter name
+        name: VIOL_PARAMETER_NAME_METACHAR
+      - description: Illegal parameter location
+        name: VIOL_PARAMETER_LOCATION
+      - description: Illegal query string length
+        name: VIOL_QUERY_STRING_LENGTH
+      - description: 'Data Guard: Information leakage detected'
+        name: VIOL_DATA_GUARD
+      - description: Illegal header length
+        name: VIOL_HEADER_LENGTH
+      - description: Illegal URL length
+        name: VIOL_URL_LENGTH
+      - description: Evasion technique detected
+        name: VIOL_EVASION
+      - description: Illegal meta character in header
+        name: VIOL_HEADER_METACHAR
+    server-technologies:
+    - serverTechnologyName: AngularJS
+    - serverTechnologyName: Express.js
+    - serverTechnologyName: JavaScript
+    - serverTechnologyName: MongoDB
+    - serverTechnologyName: Node.js
+    - serverTechnologyName: SQLite
+    - serverTechnologyName: jQuery
+    urls:
+    - attackSignaturesCheck: true
+      clickjackingProtection: false
+      description: ''
+      disallowFileUploadOfExecutables: false
+      html5CrossOriginRequestsEnforcement:
+        enforcementMode: disabled
+      isAllowed: true
+      mandatoryBody: false
+      method: "*"
+      methodsOverrideOnUrlCheck: false
+      name: "/#/login"
+      protocol: http
+      type: explicit
+      urlContentProfiles:
+      - headerName: "*"
+        headerOrder: default
+        headerValue: "*"
+        type: apply-value-and-content-signatures
+      - headerName: Content-Type
+        headerOrder: '1'
+        headerValue: "*form*"
+        type: form-data
+      - contentProfile:
+          name: Default
+        headerName: Content-Type
+        headerOrder: '2'
+        headerValue: "*json*"
+        type: json
+      - contentProfile:
+          name: Default
+        headerName: Content-Type
+        headerOrder: '3'
+        headerValue: "*xml*"
+        type: xml
+    data-guard:
+      creditCardNumbers: true
+      enabled: true
+      lastCcnDigitsToExpose: 4
+      lastSsnDigitsToExpose: 4
+      maskData: true
+      usSocialSecurityNumbers: true
+    responsePageReference:
+      link: "https://raw.githubusercontent.com/CHANGE_THIS_TO_YOUR_REPO/cicd-demo/main/app/nap-response-page.json"
+    whitelistIpReference:
+      link: "https://raw.githubusercontent.com/CHANGE_THIS_TO_YOUR_REPO/cicd-demo/main/app/nap-ip-allowlist.json"
+    enforcementMode: blocking
+    name: nap-waf-policy

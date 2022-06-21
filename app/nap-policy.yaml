@@ -1,0 +1,12 @@
+apiVersion: k8s.nginx.org/v1
+kind: Policy
+metadata:
+  name: nap-policy
+spec:
+  waf:
+    enable: true
+    apPolicy: "nap-waf-policy"
+    securityLog:
+      enable: true
+      apLogConf: "nap-logging"
+      logDest: "syslog:server=elk-svc.CHANGE_THIS_TO_YOUR_PREFIX:5144"

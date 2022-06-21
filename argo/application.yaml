@@ -1,0 +1,19 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: CHANGE_THIS_TO_YOUR_PREFIX-juiceshop
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: 'https://github.com/CHANGE_THIS_TO_YOUR_GITHUB_ACCOUNT/cicd-demo.git'
+    path: app
+    targetRevision: HEAD
+  destination:
+    server: 'https://kubernetes.default.svc'
+    namespace: CHANGE_THIS_TO_YOUR_PREFIX
+  syncPolicy:
+    automated:
+      prune: true
+    syncOptions:
+      - ApplyOutOfSyncOnly=true

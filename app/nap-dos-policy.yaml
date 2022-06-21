@@ -1,0 +1,9 @@
+apiVersion: appprotectdos.f5.com/v1beta1
+kind: DosProtectedResource
+metadata:
+  name: juice-shop-dos
+spec:
+  enable: true
+  name: "juice-shop-login"
+  apDosMonitor: 
+    uri: "http://CHANGE_THIS_TO_YOUR_NGINX_SERVICE_URL/#/login"

@@ -1,0 +1,4 @@
+**/*.key
+**/*.crt
+kubernetes-ingress
+f5-waf-elk-dashboards

@@ -1,0 +1,25 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+  workflow_dispatch:
+
+jobs:
+  scan-app:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+      - name: Wait Argo CD sync
+        run: sleep 30s
+        shell: bash
+      - name: ZAP Scan
+        uses: zaproxy/action-full-scan@v0.3.0
+        with:
+          target: 'http://CHANGE_THIS_TO_YOUR_NGINX_SERVICE_URL'
+          rules_file_name: '.zap/rules.tsv'
+          cmd_options: '-a -j'
