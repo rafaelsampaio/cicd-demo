@@ -1,8 +1,10 @@
 # CI/CD Demo with NGINX+ Ingress Controller and NGINX App Protect
 
-## How to setup the demo
+**READ** the instructions before trying the commands.
 
-### Technology
+If you found any error, make sure you read and followed the instructions, in the order they appeard.
+
+## Technology
 
 - [NGINX+ Ingress Controller](https://www.nginx.com/products/nginx-ingress-controller/)
 - [NGINX App Protect](https://www.nginx.com/products/nginx-app-protect/)
@@ -13,9 +15,9 @@
 - [OWASP Juice Shop](https://hub.docker.com/r/bkimminich/juice-shop/)
 - [Elastic Stack](https://hub.docker.com/r/sebp/elk/)
 
-### Demo setup
+## Demo setup
 
-It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacOS. All steps belows are for Linux, if you are using a different OS, make sure to change the commands as necessary.
+It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacOS. All steps belows are for Linux, if you are using a different OS, make sure that **you** change all commands as needed.
 
 1. Install all required tools and set your own variable set. Don't forget to update the ***PREFIX*** to an unique name, preferably your username, that you can identify later, it will also be your namespace.
 
@@ -45,9 +47,11 @@ It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacO
     export AZURE_ACR="ASK_YOUR_LAB_ADMIN"
     ```
 
-    You'll need a [GitHub](https://github.com) account. If you don't have one account yet, create one now. Also, [create](https://github.com/new) a **public** repository with the name `cicd-demo`. You can use another repository name, but rememeber that you have to change all files and script.
+    You'll need a [GitHub](https://github.com) account. If you don't have one account yet, [create one now](https://github.com/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F&source=header-home).
 
-    Remeber to [add your SSH key](https://github.com/settings/keys) to your GitHub account. If you don't know how to do this, check the guide [Connecting to GitHub with SSH](https://docs.github.com/en/authentication/connecting-to-github-with-ssh).
+    [Create](https://github.com/new) a **public** repository with the name `cicd-demo`. You can use another repository name, but rememeber that you have to change all files and script.
+
+    Remember to [add your SSH key](https://github.com/settings/keys) to your GitHub account. If you don't know how to do this, check the guide [Connecting to GitHub with SSH](https://docs.github.com/en/authentication/connecting-to-github-with-ssh).
 
     Register for NGINX+ trial to get access to the private repository using the given certificate and private key.
 
@@ -68,7 +72,7 @@ It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacO
 
 3. Create the Azure Kubernetes Service.
 
-    **If you are the one responsible to setting up the ASK, continue into step #3. If not, SKIP the procedure below and go to step #4.**
+    **If you are the one responsible to setting up the ASK, continue in step #3. If not, SKIP the procedure below and go to step #4.**
 
     Use the following commands to create a Resource Group and an AKS cluster:
 
@@ -155,7 +159,7 @@ It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacO
     To check your instance, try the commands below.
 
     ```bash
-    kubectl describe service -n nginx-ingress $PREFIX-nginx-ingress"
+    kubectl describe service -n nginx-ingress $PREFIX-nginx-ingress
     ```
 
     Please, take note of your instance public IP address. You will need it to configure the ```host``` in VirtualServer and the ```target``` in OWASP ZAP.
@@ -177,6 +181,7 @@ It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacO
 9. Check ArgoCD.
 
     Take note of your ArgoCD ***admin password*** and ***service URL***. There will be only one instance of ArgoCD.
+
     Get the ArgoCD credentials and hostname:
 
     ```bash
@@ -184,18 +189,22 @@ It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacO
     echo https://`kubectl get svc -n argocd argocd-server -o jsonpath="{.status.loadBalancer.ingress[0].ip}"`.nip.io
     ```
 
-## Demo
+## Running the demo
 
 ### Part 1
 
-Go back to your parent project folder and clone the demo repository. Update all URLs and namespace from the files below. All URLs are hardcoded, so updated them before the first commit and push.
+Go back to your parent project folder and clone the demo repository.
 
 ```bash
 git clone https://github.com/rafaelsampaio/cicd-demo.git
 cd cicd-demo
 ```
 
-Your application hostname will be resolved using [nip.io](https://nip.io). Use the dash instead of dots in your hostname with ```app-``` prefix, like ```app-192-168-1-250.nip.io``` that maps to ```192.168.1.250```. So, use your NGINX Ingress Controller public IP address to update your URLs to ```app-PUBLIC-IP-ADDRESS-WITH-DASHES.nip.io```.
+Your application hostname will be resolved using [nip.io](https://nip.io). Use the dash instead of dots in your hostname with ```app-``` prefix, like ```app-192-168-1-250.nip.io``` that maps to ```192.168.1.250```.
+
+So, use your NGINX Ingress Controller public IP address to update your URLs to ```app-PUBLIC-IP-ADDRESS-WITH-DASHES.nip.io```.
+
+**Update** all URLs and namespace from the files below. All URLs are hardcoded, so updated them as the instructions above **before** the first commit and push.
 
 - [argo/application.yaml](argo/application.yaml) update ```name```, ```repoURL```, and ```namespace```.
 - [app/app-namespace.yaml](app/app-namespace.yaml) update ```name```.
@@ -203,7 +212,7 @@ Your application hostname will be resolved using [nip.io](https://nip.io). Use t
 - [app/nap-policy.yaml](app/nap-policy.yaml) update ```logDest```.
 - [app/nap-vs.yaml](app/nap-vs.yaml) update ```host``` and ```ingressClassName```.
 - [app/nap-waf-policy.yaml](app/nap-waf-policy.yaml) update ```responsePageReference``` and ```whitelistIpReference``` links to your repo.
-- [workflows/scan.yaml](workflows/scan.yml) update the ```target``` to your NGINX service URL.
+- [workflows/scan.yml](workflows/scan.yml) update the ```target``` to your NGINX service URL.
 
 Push the code to your repository:
 
@@ -243,6 +252,7 @@ echo $KIBANA_URL
 ```
 
 Navigate to your Kibana, Dashboard -> Overview to view the events from NGINX App Protect.
+
 Right now, you should have the IP addresses for:
 
 - Shared ArgoCD instance
@@ -252,6 +262,7 @@ Right now, you should have the IP addresses for:
 ### Part 2
 
 Make sure there is no opened issue for the ***ZAP Full Scan Report***.
+
 Create the `.github` folder and move the GitHub Actions [workflows](/workflows/) to that folder.
 
 ```bash
@@ -267,8 +278,13 @@ With any simple change, like add or modify a file, will trigger a app scan and g
 ### Part 3 - After the 1st scan
 
 After the first scan, we notice a lots of vulnerabilities that could be easy fixed with **NGINX App Protect**.
+
 Check the file [app/nap-policy.yaml](app/nap-policy.yaml) to understand how to attach a WAF policy with ```apPolicy```. Also, we configure a logging policy using the ```securityLog``` that point to our ELK stack.
-Check the file [app/nap-waf-policy.yaml](app/nap-waf-policy.yaml) to understand how to build a WAF policy with App Protect for NGINX+ Ingress Controller. Check out the complete documentatio in [Using with NGINX App Protect](https://docs.nginx.com/nginx-ingress-controller/app-protect/configuration/) and [NGINX App Protect WAF Configuration Guide](https://docs.nginx.com/nginx-app-protect/configuration-guide/configuration/)
+
+Check the file [app/nap-waf-policy.yaml](app/nap-waf-policy.yaml) to understand how to build a WAF policy with App Protect for NGINX+ Ingress Controller.
+
+Check out the complete documentatio in [Using with NGINX App Protect](https://docs.nginx.com/nginx-ingress-controller/app-protect/configuration/) and [NGINX App Protect WAF Configuration Guide](https://docs.nginx.com/nginx-app-protect/configuration-guide/configuration/)
+
 In [app/nap-vs.yaml](app/nap-vs.yaml), after `tls` settings block, to enable a policy in the VirtualServer, add the following:
 
 ```yaml
@@ -287,6 +303,7 @@ git push -u demo main
 ### Part 4 - After the 2nd scan
 
 Access the Kibana dashboard. When we check a reduced number of vulnerabilities, some of them related to content and settings in application and server, and the dashboard show some alerts.
+
 We can fix some server/application issues in NGINX, by adding the following to [app/nap-vs.yaml](app/nap-vs.yaml), after the `requestHeaders` settings. Please, update the host ```value``` in the config below.
 
 ```yaml
@@ -345,11 +362,14 @@ git commit -m "update nginx app protect - 3rd scan"
 git push -u demo main
 ```
 
-After this, we demonstrate that the WAF settings can be implemented by the Security Team without locking, blocking, or breaking up the pipeline for the Development Team. From the dashboard we demonstrate how operations activities can be integrated with security settings.
+After this, we demonstrate that the WAF settings can be implemented by the Security Team without locking, blocking, or breaking up the pipeline for the Development Team.
+
+From the dashboard we demonstrate how operations activities can be integrated with security settings.
 
 ### Part 5 - After the 3rd scan
 
 Some alerts triggered by the scanner are related to the content and they are not necessarily a matter for the Security Team.
+
 So, we close the issue and forwarding the issue to be fixed by the dev team.
 
 #### Optional step
