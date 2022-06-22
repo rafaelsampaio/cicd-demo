@@ -224,7 +224,7 @@ git remote add demo git@github.com:$GITHUB_ACCOUNT/cicd-demo.git
 git push -u demo main
 ```
 
-Deploy Application config to ArgoCD:
+Deploy your Application manifest to ArgoCD:
 
  ```bash
  kubectl apply -n argocd -f https://raw.githubusercontent.com/$GITHUB_ACCOUNT/cicd-demo/main/argo/application.yaml
