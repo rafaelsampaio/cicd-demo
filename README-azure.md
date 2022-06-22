@@ -2,7 +2,7 @@
 
 **READ** the instructions before trying the commands.
 
-If you found any error, make sure you read and followed the instructions, in the order they appeard.
+If you come across any errors, make sure you read and followed the instructions, in the order they appeard.
 
 ## Technology
 
