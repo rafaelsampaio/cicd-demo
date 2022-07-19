@@ -2,7 +2,7 @@
 
 **READ** the instructions before trying the commands.
 
-If you come across any errors, make sure you read and followed the instructions, in the order they appeard.
+If you come across any errors, make sure you have read and followed the instructions, in the order they appeard.
 
 ## Technology
 
@@ -15,17 +15,17 @@ If you come across any errors, make sure you read and followed the instructions,
 - [OWASP Juice Shop](https://hub.docker.com/r/bkimminich/juice-shop/)
 - [Elastic Stack](https://hub.docker.com/r/sebp/elk/)
 
-## Demo setup
+## Prepare the demo
 
 It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacOS. All steps belows are for Linux, if you are using a different OS, make sure that **you** change all commands as needed.
 
 1. Install all required tools and set your own variable set
 
-   Don't forget to update the **_PREFIX_** to an unique name, preferably your username, that you can identify later, it will also be your namespace.
+   Don't forget to update the ***PREFIX*** to an unique name, preferably your username (alphanumeric only), that you can identify later, it will also be your namespace.
 
    Install these tools using your preferred way (brew, apt, manually, ...):
 
-   - docker (must be running during the demo)
+   - docker (must be running to prepare the demo)
    - git
    - helm
    - jq
@@ -44,10 +44,10 @@ It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacO
    The vars below are the same to everyone. The **lab admin** should provide them to you.
 
    ```bash
-   export AZURE_SUBSCRIPTION="ASK_YOUR_LAB_ADMIN"
-   export AZURE_RG="ASK_YOUR_LAB_ADMIN"
-   export AZURE_AKSCLUSTER="ASK_YOUR_LAB_ADMIN"
-   export AZURE_ACR="ASK_YOUR_LAB_ADMIN"
+   export AZURE_SUBSCRIPTION=f5-AZR_4261_SALES_SA_ALL
+   export AZURE_RG=rsampaio-gdl-demo
+   export AZURE_AKSCLUSTER=gdl-aks-cluster
+   export AZURE_ACR=gdlacr
    ```
 
    You'll need a [GitHub](https://github.com) account. If you don't have one account yet, [create one now](https://github.com/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F&source=header-home).
@@ -56,9 +56,7 @@ It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacO
 
    Remember to [add your SSH key](https://github.com/settings/keys) to your GitHub account. If you don't know how to do this, check the guide [Connecting to GitHub with SSH](https://docs.github.com/en/authentication/connecting-to-github-with-ssh).
 
-   Register for NGINX+ trial to get access to the private repository using the given certificate and private key.
-
-2. Configure Azure.
+2. Configure Azure
 
    Login to Azure, follow the instructions, and check the accounts you have access to.
 
@@ -73,32 +71,7 @@ It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacO
    az account set --subscription $AZURE_SUBSCRIPTION
    ```
 
-3. Build NGINX+ Ingress Controler with App Protect (WAF).
-
-   ```bash
-   git clone https://github.com/nginxinc/kubernetes-ingress/
-   cd kubernetes-ingress
-   git checkout v$NGINX_VERSION
-   ```
-
-4. Copy NGINX credentials to kubernetes-ingress.
-
-   The certificate and private key to access NGINX repo should be stored in the parent dir.
-
-   ```bash
-   cp ../nginx-repo.* .
-   make debian-image-nap-dos-plus PREFIX=nginx-ingress TARGET=container TAG=$NGINX_VERSION
-   ```
-
-5. Upload NGINX image to ACR.
-
-   ```bash
-   az acr login --name $AZURE_ACR
-   docker tag nginx-ingress:$NGINX_VERSION $AZURE_ACR.azurecr.io/$PREFIX/nginx-ingress:$NGINX_VERSION
-   docker push $AZURE_ACR.azurecr.io/$PREFIX/nginx-ingress:$NGINX_VERSION
-   ```
-
-6. Deploy NGINX+ IC to AKS.
+3. Deploy NGINX+ IC to AKS
 
    Update your kubectl config file with the credentials to access AKS. If a different object with the same name already exists in your kubeconfig file, overwrite it.
 
@@ -106,11 +79,11 @@ It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacO
    az aks get-credentials --name $AZURE_AKSCLUSTER --resource-group $AZURE_RG --file ~/.kube/config
    ```
 
-   Go back to the kubernetes-ingress project that you cloned in step #4. Then, deploy your NGINX to the cluster.
+   Clone the kubernetes-ingress project to deploy your NGINX to the cluster.
 
    ```bash
-   #cd kubernetes-ingress
-   cd deployments/helm-chart
+   git clone https://github.com/nginxinc/kubernetes-ingress/
+   cd kubernetes-ingress/deployments/helm-chart
    git checkout v$NGINX_VERSION
    helm repo add nginx-stable https://helm.nginx.com/stable
    helm repo update
@@ -119,7 +92,7 @@ It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacO
      --create-namespace \
      --set controller.kind=deployment \
      --set controller.replicaCount=1 \
-     --set controller.image.repository=$AZURE_ACR.azurecr.io/$PREFIX/nginx-ingress \
+     --set controller.image.repository=$AZURE_ACR.azurecr.io/rsampaio/nginx-ingress \
      --set controller.image.tag=$NGINX_VERSION \
      --set controller.nginxplus=true \
      --set controller.appprotect.enable=true \
@@ -153,18 +126,18 @@ It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacO
    kubectl get svc -n nginx-ingress $PREFIX-nginx-ingress -o jsonpath="{.status.loadBalancer.ingress[0].ip}"
    ```
 
-7. Check ArgoCD.
+4. Check ArgoCD
 
-   Take note of your ArgoCD **_admin password_** and **_service URL_**. There will be only one instance of ArgoCD.
+   Take note of your ArgoCD **admin password** and **service URL**.
 
    Get the ArgoCD credentials and hostname:
 
    ```bash
    kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
-   echo https://`kubectl get svc -n argocd argocd-server -o jsonpath="{.status.loadBalancer.ingress[0].ip}"`.nip.io
+   echo https://`kubectl get svc -n argocd argocd-server -o jsonpath="{.status.loadBalancer.ingress[0].ip}"`
    ```
 
-## Running the demo
+## Run the demo
 
 ### Part 1
 
@@ -236,7 +209,7 @@ Right now, you should have the IP addresses for:
 
 ### Part 2
 
-Make sure there is no opened issue for the **_ZAP Full Scan Report_**.
+Make sure there is no opened issue for the ***ZAP Full Scan Report***.
 
 Create the `.github` folder and move the GitHub Actions [workflows](/workflows/) to that folder.
 
