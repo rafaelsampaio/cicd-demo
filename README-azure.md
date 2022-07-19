@@ -33,28 +33,23 @@ It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacO
    - kubectx
    - azure cli
 
-   Set the values below to your own env vars:
-
-   ```bash
-   export PREFIX=CHANGE_THIS_TO_YOUR_NAMESPACE
-   export GITHUB_ACCOUNT=CHANGE_THIS_TO_YOUR_GITHUB_ACCOUNT
-   export NGINX_VERSION=2.2.1
-   ```
-
-   The vars below are the same to everyone. The **lab admin** should provide them to you.
-
-   ```bash
-   export AZURE_SUBSCRIPTION=f5-AZR_4261_SALES_SA_ALL
-   export AZURE_RG=rsampaio-gdl-demo
-   export AZURE_AKSCLUSTER=gdl-aks-cluster
-   export AZURE_ACR=gdlacr
-   ```
-
    You'll need a [GitHub](https://github.com) account. If you don't have one account yet, [create one now](https://github.com/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F&source=header-home).
 
    [Create](https://github.com/new) a **public** repository with the name `cicd-demo`. You can use another repository name, but rememeber that you have to change all files and script.
 
    Remember to [add your SSH key](https://github.com/settings/keys) to your GitHub account. If you don't know how to do this, check the guide [Connecting to GitHub with SSH](https://docs.github.com/en/authentication/connecting-to-github-with-ssh).
+
+   Set the values below to your own env vars:
+
+   ```bash
+   export PREFIX=CHANGE_THIS_TO_YOUR_NAMESPACE!!!!!
+   export GITHUB_ACCOUNT=CHANGE_THIS_TO_YOUR_GITHUB_ACCOUNT!!!!!
+   export NGINX_VERSION=2.2.1
+   export AZURE_SUBSCRIPTION=f5-AZR_4261_SALES_SA_ALL
+   export AZURE_RG=rsampaio-gdl-demo
+   export AZURE_AKSCLUSTER=gdl-aks-cluster
+   export AZURE_ACR=gdlacr
+   ```
 
 2. Configure Azure
 
