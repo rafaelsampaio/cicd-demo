@@ -103,6 +103,7 @@ It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacO
      --set controller.service.name="$PREFIX-nginx-ingress" \
      --set controller.service.type=LoadBalancer \
      --set prometheus.create=true \
+     --set controller.enable-external-dns=false \
      --set controller.enableLatencyMetrics=true \
      --set controller.config.proxy-protocol="true" \
      --set controller.config.real-ip-header="proxy_protocol" \
