@@ -17,7 +17,7 @@ Set the values below to your own env vars:
 ```bash
 export PREFIX=CHANGE_THIS_TO_YOUR_NAMESPACE
 export GITHUB_ACCOUNT=CHANGE_THIS_TO_YOUR_GITHUB_ACCOUNT
-export NGINX_VERSION=2.2.1
+export NGINX_VERSION=2.3.0
 ```
 
 Let others know what values will be used.
@@ -35,7 +35,7 @@ Use the following commands to create a Resource Group and an AKS cluster:
 
 ```bash
 az group create --name $AZURE_RG --location eastus
-az aks create --resource-group $AZURE_RG --name $AZURE_AKSCLUSTER --node-count 2 --enable-addons monitoring --no-ssh-key --node-vm-size Standard_D8s_v3
+az aks create --resource-group $AZURE_RG --name $AZURE_AKSCLUSTER --node-count 2 --enable-addons monitoring --no-ssh-key --node-vm-size Standard_D4_v3
 ```
 
 Then, create a Container Registry and attach to AKS.

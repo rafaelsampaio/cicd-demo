@@ -9,7 +9,7 @@ If you come across any errors, make sure you have read and followed the instruct
 - [NGINX+ Ingress Controller](https://www.nginx.com/products/nginx-ingress-controller/)
 - [NGINX App Protect](https://www.nginx.com/products/nginx-app-protect/)
 - [Azure Kubernetes Service (AKS)](https://azure.microsoft.com/en-us/services/kubernetes-service/)
-- [ArgoCD](https://argo-cd.readthedocs.io/en/stable/)
+- [Argo CD](https://argo-cd.readthedocs.io/en/stable/)
 - [GitHub Actions](https://docs.github.com/en/actions)
 - [OWASP ZAP](https://www.zaproxy.org/docs/docker/full-scan/)
 - [OWASP Juice Shop](https://hub.docker.com/r/bkimminich/juice-shop/)
@@ -19,67 +19,126 @@ If you come across any errors, make sure you have read and followed the instruct
 
 It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacOS. All steps belows are for Linux, if you are using a different OS, make sure that **you** change all commands as needed.
 
-1. Install all required tools and set your own variable set
+Install these tools using your preferred way (brew, apt, manually, ...):
 
-   Don't forget to update the ***PREFIX*** to an unique name, preferably your username (alphanumeric only), that you can identify later, it will also be your namespace.
+- docker (must be running to prepare the demo)
+- git
+- helm
+- jq
+- kubectl
+- kubectx
+- azure cli
 
-   Install these tools using your preferred way (brew, apt, manually, ...):
+You'll need a [GitHub](https://github.com) account. If you don't have one account yet, [create one now](https://github.com/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F&source=header-home).
 
-   - docker (must be running to prepare the demo)
-   - git
-   - helm
-   - jq
-   - kubectl
-   - kubectx
-   - azure cli
+[Create](https://github.com/new) a **public** and empty repository with the name `cicd-demo`. Don't create any readme, .gitignore or other files in this repository.
 
-   You'll need a [GitHub](https://github.com) account. If you don't have one account yet, [create one now](https://github.com/signup?ref_cta=Sign+up&ref_loc=header+logged+out&ref_page=%2F&source=header-home).
+Remember to [add your SSH key](https://github.com/settings/keys) to your GitHub account. If you don't know how to do this, check the guide [Connecting to GitHub with SSH](https://docs.github.com/en/authentication/connecting-to-github-with-ssh).
 
-   [Create](https://github.com/new) a **public** repository with the name `cicd-demo`. You can use another repository name, but rememeber that you have to change all files and script.
+### TL;DR
 
-   Remember to [add your SSH key](https://github.com/settings/keys) to your GitHub account. If you don't know how to do this, check the guide [Connecting to GitHub with SSH](https://docs.github.com/en/authentication/connecting-to-github-with-ssh).
+Set `PREFIX`, `GITHUB_ACCOUNT` and `AZURE_SUBSCRIPTION`, then login to Azure.
 
-   Set the values below to your own env vars:
+```bash
+export PREFIX=
+export GITHUB_ACCOUNT=
+export AZURE_SUBSCRIPTION=
+export AZURE_RG=$PREFIX-cicd-demo
+export AZURE_AKSCLUSTER=$PREFIX-cicd-demo
+export AZURE_ACR=`echo $PREFIX`cicd
+export NGINX_VERSION=2.3.0
+az login --use-device-code
+```
 
-   ```bash
-   export PREFIX=CHANGE_THIS_TO_YOUR_NAMESPACE!!!!!
-   export GITHUB_ACCOUNT=CHANGE_THIS_TO_YOUR_GITHUB_ACCOUNT!!!!!
-   export NGINX_VERSION=2.2.1
-   export AZURE_SUBSCRIPTION=f5-AZR_4261_SALES_SA_ALL
-   export AZURE_RG=rsampaio-gdl-demo
-   export AZURE_AKSCLUSTER=gdl-aks-cluster
-   export AZURE_ACR=gdlacr
-   ```
+After login to Azure, **make sure** that you have your NGINX+ **credentials** (`.crt` and `.key` files) in your **home folder** and run:
 
-2. Configure Azure
+```bash
+az account set --subscription $AZURE_SUBSCRIPTION
+/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/rafaelsampaio/cicd-demo/HEAD/demo_setup_azure.sh)"
+```
 
-   Login to Azure, follow the instructions, and check the accounts you have access to.
+At the end, the script will output your NGINX Ingress public IP, Argo CD credentials and URL. Go to [Part 1](#part-1)
+
+### Manual setup
+
+Update the `PREFIX` to an unique name, preferably your username (alphanumeric only, no capital letters), it will also be your namespace. Set `GITHUB_ACCOUNT` and `AZURE_SUBSCRIPTION`.
+
+```bash
+export PREFIX=
+export GITHUB_ACCOUNT=
+export AZURE_SUBSCRIPTION=
+export AZURE_RG=$PREFIX-cicd-demo
+export AZURE_AKSCLUSTER=$PREFIX-cicd-demo
+export AZURE_ACR=`echo $PREFIX`cicd
+export NGINX_VERSION=2.3.0
+```
+
+1. Configure Azure
+
+   Login to Azure:
 
    ```bash
    az login --use-device-code
    az account list --output table
    ```
 
-   If necessary, fix the default subscription:
+   Set the default subscription:
 
    ```bash
    az account set --subscription $AZURE_SUBSCRIPTION
    ```
 
-3. Deploy NGINX+ IC to AKS
+2. Build NGINX+ Ingress Controler with App Protect (WAF)
 
-   Update your kubectl config file with the credentials to access AKS. If a different object with the same name already exists in your kubeconfig file, overwrite it.
+   The commands below will create a folder `cicd-demo-resources` in your home that will contain all demo resources, then it will clone the NGINX Ingress project.
+
+   ```bash
+   mkdir ~/cicd-demo-resources/
+   cd ~/cicd-demo-resources/
+   git clone https://github.com/nginxinc/kubernetes-ingress/
+   cd kubernetes-ingress
+   git checkout v$NGINX_VERSION
+   ```
+
+3. Build your ingress controller container image
+
+   Copy your `nginx-repo.crt` and `nginx-repo.key` to `~/cicd-demo-resources/kubernetes-ingress`.
+   If the files are in your home folder, use the command:
+
+   ```bash
+   cp ~/nginx-repo.crt ~/cicd-demo-resources/kubernetes-ingress
+   cp ~/nginx-repo.key ~/cicd-demo-resources/kubernetes-ingress
+   ```
+
+   After that, build your image.
+
+   ```bash
+   make debian-image-nap-dos-plus PREFIX=nginx-ingress TARGET=container TAG=$NGINX_VERSION
+   ```
+
+4. Upload container image to ACR
+
+   The command below will get the credentials to Azure Container Registry, tag and upload the NGINX+ container image.
+
+   ```bash
+   az acr login --name $AZURE_ACR
+   docker tag nginx-ingress:$NGINX_VERSION $AZURE_ACR.azurecr.io/$PREFIX/nginx-ingress:$NGINX_VERSION
+   docker push $AZURE_ACR.azurecr.io/$PREFIX/nginx-ingress:$NGINX_VERSION
+   ```
+
+5. Deploy NGINX+ Ingress Controller to AKS
+
+   Update your kubectl config file with the credentials to access AKS.
 
    ```bash
    az aks get-credentials --name $AZURE_AKSCLUSTER --resource-group $AZURE_RG --file ~/.kube/config
+   kubectx $AZURE_AKSCLUSTER
    ```
 
-   Clone the kubernetes-ingress project to deploy your NGINX to the cluster.
+   Prepare the helm settings and deploy your NGINX to the cluster.
 
    ```bash
-   git clone https://github.com/nginxinc/kubernetes-ingress/
-   cd kubernetes-ingress/deployments/helm-chart
-   git checkout v$NGINX_VERSION
+   cd ~/cicd-demo-resources/kubernetes-ingress/deployments/helm-chart
    helm repo add nginx-stable https://helm.nginx.com/stable
    helm repo update
    helm install $PREFIX-ingress nginx-stable/nginx-ingress \
@@ -87,7 +146,7 @@ It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacO
      --create-namespace \
      --set controller.kind=deployment \
      --set controller.replicaCount=1 \
-     --set controller.image.repository=$AZURE_ACR.azurecr.io/rsampaio/nginx-ingress \
+     --set controller.image.repository=$AZURE_ACR.azurecr.io/$PREFIX/nginx-ingress \
      --set controller.image.tag=$NGINX_VERSION \
      --set controller.nginxplus=true \
      --set controller.appprotect.enable=true \
@@ -103,7 +162,6 @@ It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacO
      --set controller.service.name="$PREFIX-nginx-ingress" \
      --set controller.service.type=LoadBalancer \
      --set prometheus.create=true \
-     --set controller.enableExternalDns=false \
      --set controller.enableLatencyMetrics=true \
      --set controller.config.proxy-protocol="true" \
      --set controller.config.real-ip-header="proxy_protocol" \
@@ -116,22 +174,19 @@ It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacO
    kubectl describe service -n nginx-ingress $PREFIX-nginx-ingress
    ```
 
-   Please, take note of your instance public IP address. You will need it to configure the `host` in VirtualServer and the `target` in OWASP ZAP.
+6. Review
+
+   Take note of your Argo CD **admin password** and **service URL**. Also, you will need the NGINX Ingress public IP address to configure the `host` in VirtualServer and the `target` in OWASP ZAP.
+
+   Use the commands to get the Argo CD credentials and hostname, and the NGINX Ingress IP:
 
    ```bash
-   kubectl get svc -n nginx-ingress $PREFIX-nginx-ingress -o jsonpath="{.status.loadBalancer.ingress[0].ip}"
+   echo "Your Argo CD admin password: `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d; echo`"
+   echo "Your Argo CD URL: https://`kubectl get svc -n argocd argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}'`"
+   echo "Your NGINX Ingress IP: `kubectl get svc -n nginx-ingress $PREFIX-nginx-ingress -o jsonpath='{.status.loadBalancer.ingress[0].ip}'`"
    ```
 
-4. Check ArgoCD
-
-   Take note of your ArgoCD **admin password** and **service URL**.
-
-   Get the ArgoCD credentials and hostname:
-
-   ```bash
-   kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d; echo
-   echo https://`kubectl get svc -n argocd argocd-server -o jsonpath="{.status.loadBalancer.ingress[0].ip}"`
-   ```
+  Now you are ready to start the CI/CD demo with NGINX+ Ingress Controller with App Protect.
 
 ## Run the demo
 
@@ -140,17 +195,19 @@ It's highly recommended to use WSL in Windows or a Linux Virtual Machine in MacO
 Go back to your parent project folder and clone the demo repository.
 
 ```bash
+cd ~/cicd-demo-resources/
 git clone https://github.com/rafaelsampaio/cicd-demo.git
 cd cicd-demo
+echo "Your project folder: `pwd`"
 ```
 
-Your application hostname will be resolved using [nip.io](https://nip.io). Use the dash instead of dots in your hostname with `app-` prefix, like `app-192-168-1-250.nip.io` that maps to `192.168.1.250`.
+Your application hostname will be resolved using [nip.io](https://nip.io). Use dashes (-) instead of dots (.) in your hostname with `app-` prefix, like `app-192-168-1-250.nip.io` that resolves to to `192.168.1.250`.
 
-So, use your NGINX Ingress Controller public IP address to update your URLs to `app-PUBLIC-IP-ADDRESS-WITH-DASHES.nip.io`.
+Use your NGINX Ingress Controller public IP address from *Step 5* to update your URLs to `app-PUBLIC-IP-ADDRESS-WITH-DASHES.nip.io`.
 
-**UPDATE** all URLs and namespace from the files below. All URLs are hardcoded, so updated them **BEFORE** the first commit and push.
+**EDIT** all URLs and namespace in the files below. All URLs are hardcoded, so updated them **BEFORE** the first commit.
 
-- [argo/application.yaml](argo/application.yaml) update `name`, `repoURL`, and `namespace`.
+- [argo/application.yaml](argo/application.yaml) update `name`, `repoURL`, and `namespace`. **DO NOT change** the namespace *argocd* in `metadata`
 - [app/app-namespace.yaml](app/app-namespace.yaml) update `name`.
 - [app/kustomization.yaml](app/kustomization.yaml) update `namespace`.
 - [app/nap-policy.yaml](app/nap-policy.yaml) update `logDest`.
@@ -161,6 +218,7 @@ So, use your NGINX Ingress Controller public IP address to update your URLs to `
 Push the code to your repository:
 
 ```bash
+cd ~/cicd-demo-resources/cicd-demo
 git add --all
 git commit -m "first commit"
 git branch -M main
@@ -168,13 +226,13 @@ git remote add demo git@github.com:$GITHUB_ACCOUNT/cicd-demo.git
 git push -u demo main
 ```
 
-Deploy your Application manifest to ArgoCD:
+Deploy your Application manifest to Argo CD:
 
 ```bash
 kubectl apply -n argocd -f https://raw.githubusercontent.com/$GITHUB_ACCOUNT/cicd-demo/main/argo/application.yaml
 ```
 
-Wait a few minutes for the first deployment, then check your Application in Argo. Deploy the dashboards to Kibana and take note of your instance URL at the end.
+Open Argo CD dashboard and check if your application was imported. Wait a few minutes for the first deployment. Take a time to explore Argo, your applications, the icons and what they represent. Deploy the dashboards to Kibana and take note of your instance URL at the end.
 
 ```bash
 KIBANA_HOST=`kubectl get svc -n $PREFIX elk-kibana-svc -o jsonpath="{.status.loadBalancer.ingress[0].ip}"`
@@ -192,24 +250,17 @@ jq -s . kibana/false-positives-dashboards.ndjson | jq '{"objects": . }' | \
     --header 'kbn-xsrf: true' \
     --header 'Content-Type: text/plain' -d @- \
     | jq
-echo $KIBANA_URL
+echo "Your Kibana URL: $KIBANA_URL"
 ```
 
-Navigate to your Kibana, Dashboard -> Overview to view the events from NGINX App Protect.
-
-Right now, you should have the IP addresses for:
-
-- Shared ArgoCD instance
-- Your Kibana instance
-- Your NGINX instance
+Navigate to your Kibana, Dashboard -> Overview to view the events from NGINX App Protect. It should be empty at this time.
 
 ### Part 2
-
-Make sure there is no opened issue for the ***ZAP Full Scan Report***.
 
 Create the `.github` folder and move the GitHub Actions [workflows](/workflows/) to that folder.
 
 ```bash
+cd ~/cicd-demo-resources/cicd-demo
 mkdir .github
 mv workflows/ .github
 git add --all
@@ -217,11 +268,25 @@ git commit -m "second commit - 1st scan"
 git push -u demo main
 ```
 
-With any simple change, like add or modify a file, will trigger a app scan and generate or update an GitHub issue with a report.
+Go to your application in Argo CD and check if your deployment was updated. It shouldn't have been. Can you tell why? Check the application settings and look for the `path` setting. Argo will only update the deployment if the changes are within the `path` in your repository.
+
+GitHub Actions is triggered with any change in the repository. From now on, any push to the repository will start a task to scan the app and generate or update an issue in GitHub with a report. Each scan takes about 5 minutes to finish.
+
+You can check the GitHub Actions tasks in the URL:
+
+```bash
+echo "Your project repository actions: https://github.com/$GITHUB_ACCOUNT/cicd-demo/actions"
+```
+
+You can find out the issues in the URL:
+
+```bash
+echo "Your project repository issues: https://github.com/$GITHUB_ACCOUNT/cicd-demo/issues"
+```
 
 ### Part 3 - After the 1st scan
 
-After the first scan, we notice a lots of vulnerabilities that could be easy fixed with **NGINX App Protect**.
+After the first scan, open your browser and go to the section Issues in your repository in GitHub. You will see a lots of vulnerabilities. You will fix some of them in this demo with **NGINX App Protect**.
 
 Check the file [app/nap-policy.yaml](app/nap-policy.yaml) to understand how to attach a WAF policy with `apPolicy`. Also, we configure a logging policy using the `securityLog` that point to our ELK stack.
 
@@ -229,84 +294,307 @@ Check the file [app/nap-waf-policy.yaml](app/nap-waf-policy.yaml) to understand 
 
 Check out the complete documentatio in [Using with NGINX App Protect](https://docs.nginx.com/nginx-ingress-controller/app-protect/configuration/) and [NGINX App Protect WAF Configuration Guide](https://docs.nginx.com/nginx-app-protect/configuration-guide/configuration/)
 
-In [app/nap-vs.yaml](app/nap-vs.yaml), after `tls` settings block, to enable a policy in the VirtualServer, add the following:
+Edit the [app/nap-vs.yaml](app/nap-vs.yaml), **after** the `tls` settings, add the `policies` settings to enable a policy in the VirtualServer.
 
 ```yaml
-policies:
-  - name: nap-policy
+  policies:
+    - name: nap-policy
+```
+
+Your manifest will look similar to this example. Please, pay attention to the indentation. Also, you must replace some values with your variables.
+
+```yaml
+apiVersion: k8s.nginx.org/v1
+kind: VirtualServer
+metadata:
+  name: juice-shop
+spec:
+  host: CHANGE_THIS_TO_YOUR_NGINX_HOST
+  tls:
+    secret: juice-shop-secret
+  policies:
+    - name: nap-policy
+  ingressClassName: CHANGE_THIS_TO_YOUR_PREFIX-nginx-ingress  
+  upstreams:
+  - name: juice-shop
+    service: juice-shop-svc
+    port: 80
+  routes:
+  - path: /
+    action:
+      proxy: 
+        upstream: juice-shop
+        requestHeaders:
+          pass: true
 ```
 
 Update your application code.
 
 ```bash
+cd ~/cicd-demo-resources/cicd-demo
 git add --all
 git commit -m "add nginx app protect - 2nd scan"
 git push -u demo main
 ```
 
+Go to your application in Argo CD and check if the updates are deployed.
+
 ### Part 4 - After the 2nd scan
 
-Access the Kibana dashboard. When we check a reduced number of vulnerabilities, some of them related to content and settings in application and server, and the dashboard show some alerts.
+NGINX Ingress Controller with App Protect will log all accesses to your application. Access the Kibana dashboard and check the logs.
 
-We can fix some server/application issues in NGINX, by adding the following to [app/nap-vs.yaml](app/nap-vs.yaml), after the `requestHeaders` settings. Please, update the host `value` in the config below.
+Edit [app/nap-vs.yaml](app/nap-vs.yaml), **after** the `requestHeaders` settings, add the following to fix some server/application issues.
 
 ```yaml
-responseHeaders:
-  hide:
-    - Access-Control-Allow-Origin
-    - Feature-Policy
-  add:
-    - name: Access-Control-Allow-Credentials
-      value: "true"
-    - name: Access-Control-Allow-Origin
-      value: CHANGE_THIS_TO_YOUR_NGINX_SERVICE_URL
-    - name: Content-Security-Policy
-      value: default-src 'self'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' cdnjs.cloudflare.com
-    - name: Permissions-Policy
-      value: payment 'self'
+        responseHeaders:
+          hide:
+            - Access-Control-Allow-Origin
+            - Feature-Policy
+          add:
+            - name: Access-Control-Allow-Credentials
+              value: "true"
+            - name: Access-Control-Allow-Origin
+              value: http://CHANGE_THIS_TO_YOUR_NGINX_HOST
+            - name: Content-Security-Policy
+              value: default-src 'self'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' cdnjs.cloudflare.com
+            - name: Permissions-Policy
+              value: payment 'self'
 ```
 
-In [nap-waf-policy.yaml](app/nap-waf-policy.yaml), change the following violations to block:
+Your manifest will look similar to this example. Please, pay attention to the indentation. Also, you must replace some values with your variables.
 
 ```yaml
-- description: Illegal file type
-  name: VIOL_FILETYPE
-  block: true
-- description: Illegal method
-  name: VIOL_METHOD
-  block: true
-- description: Illegal meta character in URL
-  name: VIOL_URL_METACHAR
-  block: true
-- description: HTTP protocol compliance failed
-  name: VIOL_HTTP_PROTOCOL
-  block: true
+apiVersion: k8s.nginx.org/v1
+kind: VirtualServer
+metadata:
+  name: juice-shop
+spec:
+  host: CHANGE_THIS_TO_YOUR_NGINX_HOST
+  tls:
+    secret: juice-shop-secret
+  policies:
+    - name: nap-policy
+  ingressClassName: CHANGE_THIS_TO_YOUR_PREFIX-nginx-ingress  
+  upstreams:
+  - name: juice-shop
+    service: juice-shop-svc
+    port: 80
+  routes:
+  - path: /
+    action:
+      proxy: 
+        upstream: juice-shop
+        requestHeaders:
+          pass: true
+        responseHeaders:
+          hide:
+            - Access-Control-Allow-Origin
+            - Feature-Policy
+          add:
+            - name: Access-Control-Allow-Credentials
+              value: "true"
+            - name: Access-Control-Allow-Origin
+              value: http://CHANGE_THIS_TO_YOUR_NGINX_HOST
+            - name: Content-Security-Policy
+              value: default-src 'self'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' cdnjs.cloudflare.com
+            - name: Permissions-Policy
+              value: payment 'self'
 ```
 
-Before `blocking-settings`, add the following allowed (in this case, forbidden) methods, and enable `bot-defense`:
+Edit [app/nap-waf-policy.yaml](app/nap-waf-policy.yaml), change the following violations to **block** by including the `block: true` setting. Please, pay attention to the indentation.
 
 ```yaml
-methods:
-  - name: TRACK
-    $action: delete
-  - name: TRACE
-    $action: delete
-  - name: OPTIONS
-    $action: delete
-bot-defense:
-  settings:
-    isEnabled: true
+      - description: Illegal file type
+        name: VIOL_FILETYPE
+        block: true
+      - description: Illegal method
+        name: VIOL_METHOD
+        block: true
+      - description: Illegal meta character in URL
+        name: VIOL_URL_METACHAR
+        block: true
+      - description: HTTP protocol compliance failed
+        name: VIOL_HTTP_PROTOCOL
+        block: true
+```
+
+Still in [app/nap-waf-policy.yaml](app/nap-waf-policy.yaml), **before** `blocking-settings`, add the following to block methods, and enable `bot-defense` too:
+
+```yaml
+    methods:
+      - name: TRACK
+        $action: delete
+      - name: TRACE
+        $action: delete
+      - name: OPTIONS
+        $action: delete
+    bot-defense:
+      settings:
+        isEnabled: true
+```
+
+Your manifest will look similar to this example. Please, pay attention to the indentation. Also, you must replace some values with your variables.
+
+```yaml
+apiVersion: appprotect.f5.com/v1beta1
+kind: APPolicy
+metadata:
+  name: nap-waf-policy
+spec:
+  policy:
+    template:
+      name: POLICY_TEMPLATE_NGINX_BASE  
+    applicationLanguage: utf-8
+    signature-sets:
+    - name: All Signatures
+      alarm: true
+      block: true
+    - name: All Response Signatures
+      block: true
+      alarm: true
+    signatures:
+    - enabled: false
+      signatureId: 200020010
+    methods:
+      - name: TRACK
+        $action: delete
+      - name: TRACE
+        $action: delete
+      - name: OPTIONS
+        $action: delete
+    bot-defense:
+      settings:
+        isEnabled: true
+    blocking-settings:
+      violations:
+      - description: Illegal file type
+        name: VIOL_FILETYPE
+        block: true
+      - description: Illegal method
+        name: VIOL_METHOD
+        block: true
+      - description: Illegal meta character in URL
+        name: VIOL_URL_METACHAR
+        block: true
+      - description: HTTP protocol compliance failed
+        name: VIOL_HTTP_PROTOCOL
+        block: true
+      - description: Threat Campaigns
+        name: VIOL_THREAT_CAMPAIGN
+      - description: Illegal meta character in value
+        name: VIOL_PARAMETER_VALUE_METACHAR
+      - description: Illegal Base64 value
+        name: VIOL_PARAMETER_VALUE_BASE64
+      - description: Illegal request content type
+        name: VIOL_URL_CONTENT_TYPE
+      - description: Illegal cookie length
+        name: VIOL_COOKIE_LENGTH
+      - description: Illegal parameter data type
+        name: VIOL_PARAMETER_DATA_TYPE
+      - description: Illegal POST data length
+        name: VIOL_POST_DATA_LENGTH
+      - description: Null in multi-part parameter value
+        name: VIOL_PARAMETER_MULTIPART_NULL_VALUE
+      - description: Illegal parameter
+        name: VIOL_PARAMETER
+      - description: Illegal HTTP status in response
+        name: VIOL_HTTP_RESPONSE_STATUS
+      - description: CSRF attack detected
+        name: VIOL_CSRF
+      - description: Modified ASM cookie
+        name: VIOL_ASM_COOKIE_MODIFIED
+      - description: Failed to convert character
+        name: VIOL_ENCODING
+      - description: Illegal request length
+        name: VIOL_REQUEST_LENGTH
+      - description: Illegal URL
+        name: VIOL_URL
+      - description: Illegal repeated parameter name
+        name: VIOL_PARAMETER_REPEATED
+      - description: Illegal meta character in parameter name
+        name: VIOL_PARAMETER_NAME_METACHAR
+      - description: Illegal parameter location
+        name: VIOL_PARAMETER_LOCATION
+      - description: Illegal query string length
+        name: VIOL_QUERY_STRING_LENGTH
+      - description: 'Data Guard: Information leakage detected'
+        name: VIOL_DATA_GUARD
+      - description: Illegal header length
+        name: VIOL_HEADER_LENGTH
+      - description: Illegal URL length
+        name: VIOL_URL_LENGTH
+      - description: Evasion technique detected
+        name: VIOL_EVASION
+      - description: Illegal meta character in header
+        name: VIOL_HEADER_METACHAR
+    server-technologies:
+    - serverTechnologyName: AngularJS
+    - serverTechnologyName: Express.js
+    - serverTechnologyName: JavaScript
+    - serverTechnologyName: MongoDB
+    - serverTechnologyName: Node.js
+    - serverTechnologyName: SQLite
+    - serverTechnologyName: jQuery
+    urls:
+    - attackSignaturesCheck: true
+      clickjackingProtection: false
+      description: ''
+      disallowFileUploadOfExecutables: false
+      html5CrossOriginRequestsEnforcement:
+        enforcementMode: disabled
+      isAllowed: true
+      mandatoryBody: false
+      method: "*"
+      methodsOverrideOnUrlCheck: false
+      name: "/#/login"
+      protocol: http
+      type: explicit
+      urlContentProfiles:
+      - headerName: "*"
+        headerOrder: default
+        headerValue: "*"
+        type: apply-value-and-content-signatures
+      - headerName: Content-Type
+        headerOrder: '1'
+        headerValue: "*form*"
+        type: form-data
+      - contentProfile:
+          name: Default
+        headerName: Content-Type
+        headerOrder: '2'
+        headerValue: "*json*"
+        type: json
+      - contentProfile:
+          name: Default
+        headerName: Content-Type
+        headerOrder: '3'
+        headerValue: "*xml*"
+        type: xml
+    data-guard:
+      creditCardNumbers: true
+      enabled: true
+      lastCcnDigitsToExpose: 4
+      lastSsnDigitsToExpose: 4
+      maskData: true
+      usSocialSecurityNumbers: true
+    responsePageReference:
+      link: "https://raw.githubusercontent.com/CHANGE_THIS_TO_YOUR_REPO/cicd-demo/main/app/nap-response-page.json"
+    whitelistIpReference:
+      link: "https://raw.githubusercontent.com/CHANGE_THIS_TO_YOUR_REPO/cicd-demo/main/app/nap-ip-allowlist.json"
+    enforcementMode: blocking
+    name: nap-waf-policy
 ```
 
 Update your application code.
 
 ```bash
+cd ~/cicd-demo-resources/cicd-demo
 git add --all
 git commit -m "update nginx app protect - 3rd scan"
 git push -u demo main
 ```
 
-After this, we demonstrate that the WAF settings can be implemented by the Security Team without locking, blocking, or breaking up the pipeline for the Development Team.
+Go to your application in Argo CD and check if the updates are deployed. Each and everytime the application code changes, Argo CD will deploy the new version and GitHub Actions will scan the application. So, the WAF settings can be implemented by the Security Team without locking, blocking, or breaking up the pipeline for the Development Team. A developer can include new features and the Security Team can test the applied policies looking for false-positives and fine tunings.
 
 From the dashboard we demonstrate how operations activities can be integrated with security settings.
 
@@ -318,7 +606,7 @@ So, we close the issue and forwarding the issue to be fixed by the dev team.
 
 #### Optional step
 
-Add the following lines to [.zap/rules.tsv](.zap/rules.tsv) to ignore some rules, separated by **tab**:
+Edit [.zap/rules.tsv](.zap/rules.tsv) and add the following lines to ignore some rules, separated by **tab** instead of **spaces**:
 
 ```text
 10096 IGNORE (Timestamp Disclosure - Unix)
@@ -330,9 +618,16 @@ Add the following lines to [.zap/rules.tsv](.zap/rules.tsv) to ignore some rules
 Update your application code.
 
 ```bash
+cd ~/cicd-demo-resources/cicd-demo
 git add --all
 git commit -m "update scanner settings"
 git push -u demo main
+```
+
+## Finish the demo
+
+```bash
+az group delete $AZURE_RG
 ```
 
 ## Versioning

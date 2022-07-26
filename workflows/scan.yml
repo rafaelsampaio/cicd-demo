@@ -20,6 +20,6 @@ jobs:
       - name: ZAP Scan
         uses: zaproxy/action-full-scan@v0.3.0
         with:
-          target: 'http://CHANGE_THIS_TO_YOUR_NGINX_SERVICE_URL'
+          target: 'http://CHANGE_THIS_TO_YOUR_NGINX_HOST'
           rules_file_name: '.zap/rules.tsv'
           cmd_options: '-a -j'
