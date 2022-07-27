@@ -1,4 +1,14 @@
 #!/bin/bash
+echo "### Preparing the CICD demo with NGINX+ Ingress Controller and App Protect"
+echo "Variables:"
+echo "PREFIX=$PREFIX"
+echo "GITHUB_ACCOUNT=$GITHUB_ACCOUNT"
+echo "AZURE_SUBSCRIPTION=$AZURE_SUBSCRIPTION"
+echo "AZURE_RG=$AZURE_RG"
+echo "AZURE_AKSCLUSTER=$AZURE_AKSCLUSTER"
+echo "AZURE_ACR=$AZURE_ACR"
+echo "NGINX_VERSION=$NGINX_VERSION"
+
 echo "### Preparing demo root folder ###"
 rm -rf ~/cicd-demo-resources/ 
 mkdir ~/cicd-demo-resources/

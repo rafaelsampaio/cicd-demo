@@ -205,7 +205,7 @@ Your application hostname will be resolved using [nip.io](https://nip.io). Use d
 
 Use your NGINX Ingress Controller public IP address from *Step 5* to update your URLs to `app-PUBLIC-IP-ADDRESS-WITH-DASHES.nip.io`.
 
-**EDIT** all URLs and namespace in the files below. All URLs are hardcoded, so updated them **BEFORE** the first commit.
+**EDIT** the files below. All URLs are hardcoded, so updated them **BEFORE** the first commit.
 
 - [argo/application.yaml](argo/application.yaml) update `name`, `repoURL`, and `namespace`. **DO NOT change** the namespace *argocd* in `metadata`
 - [app/app-namespace.yaml](app/app-namespace.yaml) update `name`.
@@ -238,6 +238,7 @@ Open Argo CD dashboard and check if your application was imported. Wait a few mi
 KIBANA_HOST=`kubectl get svc -n $PREFIX elk-kibana-svc -o jsonpath="{.status.loadBalancer.ingress[0].ip}"`
 echo $KIBANA_HOST
 KIBANA_URL=http://$KIBANA_HOST:5601
+cd ~/cicd-demo-resources/
 git clone https://github.com/f5devcentral/f5-waf-elk-dashboards.git
 cd f5-waf-elk-dashboards
 jq -s . kibana/overview-dashboard.ndjson | jq '{"objects": . }' | \
@@ -250,6 +251,7 @@ jq -s . kibana/false-positives-dashboards.ndjson | jq '{"objects": . }' | \
     --header 'kbn-xsrf: true' \
     --header 'Content-Type: text/plain' -d @- \
     | jq
+cd ~/cicd-demo-resources/cicd-demo
 echo "Your Kibana URL: $KIBANA_URL"
 ```
 
