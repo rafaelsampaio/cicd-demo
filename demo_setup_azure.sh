@@ -1,13 +1,5 @@
 #!/bin/bash
 echo "### Preparing the CICD demo with NGINX+ Ingress Controller and App Protect"
-echo "Variables:"
-echo "PREFIX=$PREFIX"
-echo "GITHUB_ACCOUNT=$GITHUB_ACCOUNT"
-echo "AZURE_SUBSCRIPTION=$AZURE_SUBSCRIPTION"
-echo "AZURE_RG=$AZURE_RG"
-echo "AZURE_AKSCLUSTER=$AZURE_AKSCLUSTER"
-echo "AZURE_ACR=$AZURE_ACR"
-echo "NGINX_VERSION=$NGINX_VERSION"
 
 echo "### Preparing demo root folder ###"
 rm -rf ~/cicd-demo-resources/ 
@@ -18,7 +10,7 @@ cd ~/cicd-demo-resources/
 git clone https://github.com/nginxinc/kubernetes-ingress/
 
 echo "### Building nginx ingress v$NGINX_VERSION ###"
-cd kubernetes-ingress
+cd ~/cicd-demo-resources/kubernetes-ingress
 git checkout v$NGINX_VERSION
 cp ~/nginx-repo.* .
 make debian-image-nap-dos-plus PREFIX=nginx-ingress TARGET=container TAG=$NGINX_VERSION
@@ -80,10 +72,20 @@ helm install $PREFIX-ingress nginx-stable/nginx-ingress \
     --set controller.config.real-ip-header="proxy_protocol" \
     --set controller.config.set-real-ip-from="0.0.0.0/0"
 
-echo "### Moving back to you demo root folder ###"
+echo "### DONE! ###"
 cd ~/cicd-demo-resources/
 
-printf "\n\n\n"
+printf "\n\n"
+echo "Variables:"
+echo "PREFIX=$PREFIX"
+echo "GITHUB_ACCOUNT=$GITHUB_ACCOUNT"
+echo "AZURE_SUBSCRIPTION=$AZURE_SUBSCRIPTION"
+echo "AZURE_RG=$AZURE_RG"
+echo "AZURE_AKSCLUSTER=$AZURE_AKSCLUSTER"
+echo "AZURE_ACR=$AZURE_ACR"
+echo "NGINX_VERSION=$NGINX_VERSION"
+
+printf "\n\n"
 echo "Your root demo folder: `pwd`"
 echo "Your ArgoCD URL: https://`kubectl get svc -n argocd argocd-server -o jsonpath='{.status.loadBalancer.ingress[0].ip}'`"
 echo "Your ArgoCD admin password: `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d; echo`"

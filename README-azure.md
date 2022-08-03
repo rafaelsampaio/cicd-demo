@@ -37,7 +37,7 @@ Remember to [add your SSH key](https://github.com/settings/keys) to your GitHub 
 
 ### TL;DR
 
-Set `PREFIX`, `GITHUB_ACCOUNT` and `AZURE_SUBSCRIPTION`, then login to Azure.
+Set `PREFIX` (alphanumeric only!), `GITHUB_ACCOUNT` and `AZURE_SUBSCRIPTION`, then login to Azure.
 
 ```bash
 export PREFIX=
@@ -45,7 +45,7 @@ export GITHUB_ACCOUNT=
 export AZURE_SUBSCRIPTION=
 export AZURE_RG=$PREFIX-cicd-demo
 export AZURE_AKSCLUSTER=$PREFIX-cicd-demo
-export AZURE_ACR=`echo $PREFIX`cicd
+export AZURE_ACR=`echo $PREFIX`cicddemo
 export NGINX_VERSION=2.3.0
 az login --use-device-code
 ```
