@@ -203,7 +203,7 @@ echo "Your project folder: `pwd`"
 
 Your application hostname will be resolved using [nip.io](https://nip.io). Use dashes (-) instead of dots (.) in your hostname with `app-` prefix, like `app-192-168-1-250.nip.io` that resolves to to `192.168.1.250`.
 
-Use your NGINX Ingress Controller public IP address from *Step 5* to update your URLs to `app-PUBLIC-IP-ADDRESS-WITH-DASHES.nip.io`.
+Use your NGINX Ingress Controller public IP address to update your URLs to `app-PUBLIC-IP-ADDRESS-WITH-DASHES.nip.io`.
 
 **EDIT** the files below. All URLs are hardcoded, so updated them **BEFORE** the first commit.
 
